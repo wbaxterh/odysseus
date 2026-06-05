@@ -14,6 +14,9 @@ exercise only the keyword-hint loop.
 from src.tool_index import ToolIndex
 
 
+_MINIMAL_BASE = frozenset({"__stub__"})  # bypass ALWAYS_AVAILABLE to isolate keyword hints
+
+
 def _index():
     ti = ToolIndex.__new__(ToolIndex)
     ti.retrieve = lambda query, k=8: []  # no chroma; isolate the keyword loop
@@ -40,16 +43,12 @@ def test_substring_inside_word_does_not_force_document_tools():
 
 def test_substring_inside_word_does_not_force_serve_tools():
     ti = _index()
-    # "observe"/"reserve" contain "serve". The keyword hint for "serve"
-    # must not fire on these substrings. However, serve_model and
-    # serve_preset are now in ALWAYS_AVAILABLE (always included), so
-    # we verify the keyword-hint path itself doesn't match by checking
-    # that NO additional cookbook tools (beyond the always-on set) leak in.
-    from src.tool_index import ALWAYS_AVAILABLE
-    tools = ti.get_tools_for_query("please observe the reserve levels")
-    # download_model is keyword-only (not in ALWAYS_AVAILABLE) — it should
-    # NOT appear for a query about "observe" / "reserve".
-    assert "download_model" not in tools
+    # "observe"/"reserve" contain "serve". Bypass ALWAYS_AVAILABLE so
+    # the test isolates the keyword-hint boundary, not the always-on set.
+    tools = ti.get_tools_for_query("please observe the reserve levels",
+                                   always_include=_MINIMAL_BASE)
+    assert "serve_model" not in tools
+    assert "serve_preset" not in tools
 
 
 def test_genuine_keywords_still_force_include():
