@@ -15,6 +15,16 @@ what's custom and how to keep custom work and upstream contributions separate.
 
 ## Custom features on `wes/custom`
 
+- **teams2kb ingest endpoint** (`routes/teams2kb_routes.py`, registered in
+  `app.py`): `GET /api/teams2kb/meta` (taxonomy values for the extension's
+  dropdowns) and `POST /api/teams2kb/ingest` (raw Teams Chat Exporter JSON →
+  teams2kb CLI conversion → message+window chunks → VectorRAG). Auth: normal
+  middleware (Bearer `ody_` API token or internal-tool header) plus an
+  `X-Teams2KB-Ingest` CSRF-stop header. Converted JSONL lands in
+  `teams2kb/ingested/` (gitignored) so re-ingest dedupes and removal works.
+  Client: the enhanced extension fork at
+  `~/Documents/HuberSoftware/teams2kb-extension` (branch `t2k/ingest-ui`).
+
 - **Reasoned multi-source RAG** (`src/rag_reasoned.py` + the RAG block in
   `src/chat_processor.py`): answer-time retrieval gathers conversation
   evidence (Teams chats ingested by
