@@ -288,30 +288,39 @@ class ChatProcessor:
             # (skills index injection moved out — see below; only fires in
             # agent mode so chat mode and incognito stay clean.)
 
-        # RAG: search if enabled and rag_manager available, inject only above threshold
+        # RAG (fork feature — see FORK.md): multi-source reasoned retrieval.
+        # Conversations (Teams chats) and documents are searched as separate
+        # families, annotated with provenance and timestamps, and injected with
+        # a reasoning guide (recency, source kind, conflicts, attribution).
+        # See src/rag_reasoned.py. Inject only above threshold.
         if use_rag:
             try:
                 rag_manager = getattr(self.personal_docs_manager, 'rag_manager', None)
                 if rag_manager:
-                    results = rag_manager.search(message, k=5, owner=owner)
-                    # Filter by similarity threshold
-                    relevant = [r for r in results if r.get("similarity", 0) >= self.RAG_SIMILARITY_THRESHOLD]
-                    if relevant:
-                        logger.info(f"RAG: {len(relevant)}/{len(results)} results above threshold {self.RAG_SIMILARITY_THRESHOLD}")
+                    from src.rag_reasoned import format_evidence, gather_evidence
+                    evidence = gather_evidence(
+                        rag_manager, message, k=5, owner=owner,
+                        min_similarity=self.RAG_SIMILARITY_THRESHOLD,
+                    )
+                    if evidence:
+                        n_convo = sum(1 for i in evidence if i["kind"] == "conversation")
+                        logger.info(
+                            f"RAG: {len(evidence)} evidence items above threshold "
+                            f"{self.RAG_SIMILARITY_THRESHOLD} "
+                            f"({n_convo} conversation, {len(evidence) - n_convo} document)"
+                        )
                         rag_sources = [
                             {
-                                "filename": r["metadata"].get("filename", r["metadata"].get("source", "unknown")),
-                                "snippet": r["document"][:200],
-                                "similarity": round(r.get("similarity", 0), 3)
+                                "filename": i["label"],
+                                "snippet": i["document"][:200],
+                                "similarity": round(i.get("similarity", 0), 3)
                             }
-                            for r in relevant
+                            for i in evidence
                         ]
-                        rag_content = "Relevant documents:\n\n" + "\n\n---\n\n".join(
-                            f"[{s['filename']}]\n{r['document']}" for s, r in zip(rag_sources, relevant)
-                        )
-                        if len(rag_content) > 10000:
-                            rag_content = rag_content[:10000] + "\n[Truncated]"
-                        preface.append(untrusted_context_message("retrieved documents", rag_content))
+                        preface.append(untrusted_context_message(
+                            "retrieved evidence (conversations + documents)",
+                            format_evidence(evidence),
+                        ))
             except Exception as e:
                 logger.warning(f"RAG retrieval failed: {e}")
 
