@@ -987,7 +987,12 @@ export function buildRagSourcesBox(sources) {
   for (var i = 0; i < sources.length; i++) {
     var s = sources[i] || {};
     var pct = (typeof s.similarity === 'number') ? (s.similarity * 100).toFixed(1) + '%' : '';
+    var tagbits = [];
+    if (s.project) tagbits.push(esc(s.project));
+    if (s.org) tagbits.push(esc(s.org));
+    var tagline = tagbits.length ? ' <span class="rag-tags">' + tagbits.join(' · ') + '</span>' : '';
     items += '<div class="rag-source-item"><strong>' + esc(s.filename || '') + '</strong>'
+      + tagline
       + (pct ? ' <span class="rag-similarity">' + pct + '</span>' : '')
       + '<div class="rag-snippet">' + esc(s.snippet || '') + '</div></div>';
   }

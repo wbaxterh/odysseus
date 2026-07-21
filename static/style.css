@@ -40451,3 +40451,6 @@ body.theme-frosted .modal {
   .compare-grid[data-cols] { grid-template-columns: 1fr !important; overflow-y: auto; }
   .compare-pane { min-height: 60dvh; }
 }
+
+/* RAG bibliography — provenance tags (project · org) on each source */
+.rag-tags { opacity: 0.62; font-size: 0.82em; font-style: italic; }

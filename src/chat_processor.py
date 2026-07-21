@@ -298,16 +298,35 @@ class ChatProcessor:
                     relevant = [r for r in results if r.get("similarity", 0) >= self.RAG_SIMILARITY_THRESHOLD]
                     if relevant:
                         logger.info(f"RAG: {len(relevant)}/{len(results)} results above threshold {self.RAG_SIMILARITY_THRESHOLD}")
-                        rag_sources = [
-                            {
-                                "filename": r["metadata"].get("filename", r["metadata"].get("source", "unknown")),
+                        def _clean_name(meta):
+                            fn = meta.get("filename") or ((meta.get("source") or "unknown").split("/")[-1])
+                            low = fn.lower()
+                            # Converted Office files are stored as "<original>.<ext>.md";
+                            # show the original name in citations (drop the ".md").
+                            for _ext in (".docx.md", ".pptx.md", ".xlsx.md", ".doc.md", ".ppt.md", ".xls.md"):
+                                if low.endswith(_ext):
+                                    return fn[:-3]
+                            return fn
+
+                        rag_sources = []
+                        for r in relevant:
+                            meta = r.get("metadata", {}) or {}
+                            rag_sources.append({
+                                "filename": _clean_name(meta),
                                 "snippet": r["document"][:200],
-                                "similarity": round(r.get("similarity", 0), 3)
-                            }
-                            for r in relevant
-                        ]
+                                "similarity": round(r.get("similarity", 0), 3),
+                                "project": meta.get("project", ""),
+                                "org": meta.get("org", ""),
+                                "category": meta.get("category", ""),
+                            })
+                        # Include provenance (project/org) in the injected context so the
+                        # model can attribute and reason about where each snippet came from.
                         rag_content = "Relevant documents:\n\n" + "\n\n---\n\n".join(
-                            f"[{s['filename']}]\n{r['document']}" for s, r in zip(rag_sources, relevant)
+                            f"[{s['filename']}"
+                            + (f" · project: {s['project']}" if s.get('project') else "")
+                            + (f" · org: {s['org']}" if s.get('org') else "")
+                            + f"]\n{r['document']}"
+                            for s, r in zip(rag_sources, relevant)
                         )
                         if len(rag_content) > 10000:
                             rag_content = rag_content[:10000] + "\n[Truncated]"
