@@ -35,6 +35,31 @@ what's custom and how to keep custom work and upstream contributions separate.
   (falls back to Python-side filtering), so it survives rebases regardless of
   what lands upstream.
 
+- **`search_knowledge` agent tool** (impl `src/tools/search.py`, schema
+  `src/tool_schemas.py`, dispatch `src/tool_execution.py`, aliases
+  `src/tool_parsing.py`, index `src/tool_index.py`, one-liner + domain map
+  `src/agent_loop.py`, admin catalog `static/js/admin.js`): agent-mode
+  front-end for the reasoned-RAG retrieval, owner-scoped like
+  `search_chats`, so Agent mode can query ingested Teams chats/documents on
+  demand instead of relying on the chat-mode preface injection.
+
+- **teams2kb owner attribution** (`routes/teams2kb_routes.py`): `_owner_from`
+  resolves bearer `ody_` callers via `src.auth_helpers.effective_user` so
+  extension ingests land under the token's human owner, not the `api`
+  pseudo-user silo.
+
+- **Chat-mode RAG default-on + visible toggle** (`static/app.js`): RAG init
+  defaults ON unless the user explicitly toggled it off (`rag_user_set`
+  marker; the old init persisted `rag:false` on every load), and
+  `rag-toggle-btn` was removed from `UI_VIS_DEFAULT_OFF` so the RAG item
+  shows in the composer "+" menu. Matches the backend default (`use_rag`
+  omitted → RAG on).
+
+- **API Tokens settings card restore** (`static/index.html`): the settings
+  overhaul commit 4f7061f dropped the API Tokens markup from the System
+  panel while `admin.js` kept `loadTokens`/`initTokenForm` wired, leaving
+  token management invisible. Markup restored (likely upstreamable).
+
 ## Workflows
 
 **Contribute upstream** (in the sibling worktree, running checkout untouched):

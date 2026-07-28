@@ -1813,7 +1813,12 @@ function initializeEventListeners() {
   }
 
   // ── RAG toggle (overflow + indicator) ──
-  function _syncRagIndicator(active) {
+  // `userSet` marks an explicit user/agent toggle (rag_user_set). Without the
+  // marker, the persisted `rag` value is treated as an artifact of the old
+  // default-off init (which saved rag:false on every load) and the on-load
+  // default stays ON — matching the backend, which runs RAG when the form
+  // omits use_rag.
+  function _syncRagIndicator(active, userSet = false) {
     const indicator = el('rag-indicator-btn');
     const overflow = el('overflow-rag-btn');
     const chk = el('rag-toggle');
@@ -1823,20 +1828,22 @@ function initializeEventListeners() {
       indicator.classList.toggle('active', active);
     }
     if (overflow) overflow.classList.toggle('active', active);
-    const s = loadToggleState(); s.rag = active; saveToggleState(s);
+    const s = loadToggleState(); s.rag = active; if (userSet) s.rag_user_set = true; saveToggleState(s);
     updatePlusDot();
   }
-  window._syncRagIndicator = _syncRagIndicator;
+  // External callers (slash commands, agent ui_event toggles) are always
+  // explicit intent — route them through the userSet path.
+  window._syncRagIndicator = (active) => _syncRagIndicator(active, true);
   window._syncResearchIndicator = _syncResearchIndicator;
   // Must be assigned at module level (not inside the function body) so the very
   // first external caller — group.js / sessions.js fire it before it has ever
   // run locally — finds it instead of silently no-op'ing (the "group indicator
   // sometimes doesn't appear" bug).
   window._syncGroupIndicator = _syncGroupIndicator;
-  // Init RAG state on load
+  // Init RAG state on load: ON unless the user explicitly turned it off.
   {
     const st = loadToggleState();
-    const ragState = st.rag || false;
+    const ragState = st.rag_user_set ? !!st.rag : true;
     _syncRagIndicator(ragState);
   }
 
@@ -2254,12 +2261,12 @@ function initializeEventListeners() {
     overflowRagBtn.addEventListener('click', () => {
       const chk = el('rag-toggle');
       const isActive = chk ? !chk.checked : true;
-      _syncRagIndicator(isActive);
+      _syncRagIndicator(isActive, true);
     });
   }
   if (ragIndicatorBtn) {
     ragIndicatorBtn.addEventListener('click', () => {
-      _syncRagIndicator(false);
+      _syncRagIndicator(false, true);
     });
   }
 
@@ -2526,7 +2533,7 @@ function initializeEventListeners() {
   };
 
   // Keys hidden by default on first run (no localStorage yet)
-  const UI_VIS_DEFAULT_OFF = new Set(['models-section', 'rag-toggle-btn', 'text-emojis', 'chat-fullwidth']);
+  const UI_VIS_DEFAULT_OFF = new Set(['models-section', 'text-emojis', 'chat-fullwidth']);
 
   // Keys that need admin to toggle off (reserved for future use)
   const UI_VIS_ADMIN_ONLY = new Set([]);

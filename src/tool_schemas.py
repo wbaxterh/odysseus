@@ -281,6 +281,20 @@ FUNCTION_TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "search_knowledge",
+            "description": "Semantic search over the user's knowledge base — ingested Teams chats and documents (teams2kb / VectorRAG). Use when the user asks what a person said, did, reported, or decided in team conversations, about project history, or any fact that lives in ingested chats/documents rather than this session's transcript. Returns evidence snippets with source labels and dates.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Natural-language query for the knowledge base"}
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "chat_with_model",
             "description": "Send a message to another AI model and get its response. Use for getting a second opinion, delegating subtasks, or AI-to-AI communication.",
             "parameters": {

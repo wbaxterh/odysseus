@@ -36,8 +36,13 @@ DEFAULT_OWNER = "wes"
 
 
 def _owner_from(request: Request) -> str:
-    user = getattr(request.state, "current_user", None)
-    if user and user != "internal-tool":
+    # effective_user resolves bearer ody_ tokens to the human that minted
+    # them (api_token_owner); without it, token callers come through as the
+    # sandboxed pseudo-user "api" and ingested chats would land in an
+    # "api"-owned silo invisible to the owner's KB queries.
+    from src.auth_helpers import effective_user
+    user = effective_user(request)
+    if user and user not in ("internal-tool", "api"):
         return user
     return DEFAULT_OWNER
 

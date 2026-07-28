@@ -49,3 +49,31 @@ async def do_search_chats(query: str, limit: int = 20, owner: str | None = None)
     except Exception as e:
         logger.error(f"search_chats failed: {e}")
         return {"error": str(e), "exit_code": 1}
+
+
+async def do_search_knowledge(query: str, owner: str | None = None, k: int = 5) -> Dict:
+    """Semantic search over the user's knowledge base (fork feature — FORK.md).
+
+    Fronts the same reasoned-RAG retrieval that chat mode injects
+    (src/rag_reasoned.py) so AGENT mode can query ingested Teams chats and
+    documents on demand. Owner-scoped like search_chats: evidence is
+    restricted to the calling user's KB entries.
+    """
+    try:
+        from src.rag_singleton import get_rag_manager
+        from src.rag_reasoned import format_evidence, gather_evidence
+
+        rag = get_rag_manager()
+        if rag is None or not getattr(rag, "healthy", False):
+            return {"results": "Knowledge base is unavailable (is ChromaDB running?)."}
+        # Looser threshold than chat-mode auto-injection (0.35): an explicit
+        # tool call means the model asked for evidence, so let it judge
+        # borderline hits itself rather than silently dropping them.
+        items = gather_evidence(rag, query, k=max(1, min(int(k or 5), 10)),
+                                owner=owner, min_similarity=0.2)
+        if not items:
+            return {"results": f"No knowledge-base evidence found for \"{query}\"."}
+        return {"results": format_evidence(items)}
+    except Exception as e:
+        logger.error(f"search_knowledge failed: {e}")
+        return {"error": str(e), "exit_code": 1}
