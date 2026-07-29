@@ -23,7 +23,10 @@ what's custom and how to keep custom work and upstream contributions separate.
   `X-Teams2KB-Ingest` CSRF-stop header. Converted JSONL lands in
   `teams2kb/ingested/` (gitignored) so re-ingest dedupes and removal works.
   Client: the enhanced extension fork at
-  `~/Documents/HuberSoftware/teams2kb-extension` (branch `t2k/ingest-ui`).
+  `~/Documents/HuberSoftware/teams2kb-extension` (branch `t2k/ingest-ui`),
+  pushed to the private repo
+  [wbaxterh/teams2kb-extension](https://github.com/wbaxterh/teams2kb-extension)
+  (`upstream` remote = gediz/teams-web-chat-exporter).
 
 - **Reasoned multi-source RAG** (`src/rag_reasoned.py` + the RAG block in
   `src/chat_processor.py`): answer-time retrieval gathers conversation
